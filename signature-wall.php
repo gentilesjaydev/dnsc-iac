@@ -11,6 +11,8 @@ if (!$activeEvent) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>No Active Event - Signature Wall</title>
+    <!-- Favicon -->
+    <link rel="icon" href="assets/images/iclogo.png" type="image/png">
         <link rel="shortcut icon" href="assets/images/iclogo.png" type="image/x-icon">
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
         <style>
@@ -61,6 +63,8 @@ if (!$activeEvent) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signature Wall - IAC Covenant</title>
+    <!-- Favicon -->
+    <link rel="icon" href="assets/images/iclogo.png" type="image/png">
     <!-- Favicon -->
     <link rel="shortcut icon" href="assets/images/iclogo.png" type="image/x-icon">
     <!-- Bootstrap 5 CSS -->
