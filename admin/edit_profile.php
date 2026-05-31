@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar-logo d-flex align-items-center gap-2 mb-4">
             <img src="../assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
-            <img src="../assets/images/iclogo.png" alt="IC" style="height: 42px; margin-top: -2px;">
+            <img src="../assets/images/iclogo.png" alt="IC" style="height: 35px;">
             <div class="ms-1">
                 <span style="color: #5b21b6;">IAC</span> <span style="color: var(--accent-core);">Covenant</span>
             </div>
@@ -107,6 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <ul class="nav nav-admin flex-column">
             <li class="nav-item">
                 <a href="dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a href="analytics" class="nav-link"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+            </li>
+            <li class="nav-item">
+                <a href="events" class="nav-link"><i class="fa-solid fa-calendar-alt"></i> Events</a>
             </li>
             <li class="nav-item">
                 <a href="attendance" class="nav-link"><i class="fa-solid fa-user-check"></i> Attendance</a>
@@ -221,6 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 
 </html>
+
 
 
 

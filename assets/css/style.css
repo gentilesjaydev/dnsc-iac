@@ -1068,3 +1068,8 @@ h6 {
     border-color: transparent;
 }
 
+/* Make IC logo visually equal to DNSC logo by compensating for its internal transparent padding */
+img[src*="iclogo.png"] {
+    transform: scale(1.35) !important;
+}
+

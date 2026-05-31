@@ -110,10 +110,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="auth-card">
 
             <div class="text-center mb-4">
-                <img src="assets/images/dnsclogo.png" alt="Logo" style="width: 70px; margin-bottom: 20px;"
-                    onerror="this.style.display='none'">
-                <img src="assets/images/iclogo.png" alt="Logo" style="width: 95px; margin-bottom: 20px; margin-left: 10px;"
-                    onerror="this.style.display='none'">
+                <img src="assets/images/dnsclogo.png" alt="Logo" style="width: 70px; margin-bottom: 20px;">
+                <span style="font-size: 2rem; color: #cbd5e1; margin: 0 10px; margin-bottom: 20px; font-weight: 300;">|</span>
+                <img src="assets/images/iclogo.png" alt="Logo" style="width: 70px; margin-bottom: 20px; margin-left: 10px;" onerror="this.style.display='none'">
                 <h4 style="font-family: 'Outfit'; font-weight: 700; color: var(--accent-deep);">IAC Covenant System</h4>
                 <p class="text-muted small">Authorized access to the administrative dashboard</p>
             </div>

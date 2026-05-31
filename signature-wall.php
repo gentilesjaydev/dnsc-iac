@@ -1,3 +1,59 @@
+<?php
+require_once 'includes/db.php';
+// Fetch active event
+$stmt = $pdo->query("SELECT * FROM events WHERE is_active = 1 LIMIT 1");
+$activeEvent = $stmt->fetch();
+if (!$activeEvent) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>No Active Event - Signature Wall</title>
+        <link rel="shortcut icon" href="assets/images/iclogo.png" type="image/x-icon">
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+        <style>
+            body {
+                background-color: #0f172a;
+                color: white;
+                font-family: 'Outfit', sans-serif;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
+                overflow: hidden;
+            }
+            .message-box {
+                text-align: center;
+                opacity: 0.5;
+            }
+            .logo-row img {
+                height: 80px;
+                margin: 0 15px 2rem 15px;
+                filter: grayscale(100%);
+            }
+            img[src*="iclogo.png"] {
+                transform: scale(1.35);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="message-box">
+            <div class="logo-row">
+                <img src="assets/images/dnsclogo.png" alt="DNSC">
+                <img src="assets/images/iclogo.png" alt="IC">
+            </div>
+            <h1 style="font-weight: 800; font-size: 4rem; margin-bottom: 1rem; letter-spacing: -1px;">Standby</h1>
+            <p style="font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase;">Awaiting Active Event</p>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -258,6 +314,11 @@
                 font-size: 5rem;
             }
         }
+        
+        /* Make IC logo visually equal to DNSC logo */
+        img[src*="iclogo.png"] {
+            transform: scale(1.35) !important;
+        }
     </style>
 </head>
 
@@ -268,7 +329,7 @@
         <h1 class="watermark-text" style="color: var(--accent-purple);">Covenant</h1>
         <div class="watermark-logos">
             <img src="assets/images/dnsclogo.png" alt="" onerror="this.style.display='none'">
-            <img src="assets/images/iclogo.png" alt="" style="height: 180px;" onerror="this.style.display='none'">
+            <img src="assets/images/iclogo.png" alt="" onerror="this.style.display='none'">
         </div>
     </div>
 
@@ -278,14 +339,14 @@
 
             <div class="header-text-content">
                 <h1 class="main-event-title" style="color: var(--accent-purple); font-size: 1.8rem;">IAC Covenant</h1>
-                <h2 class="main-event-title" style="font-size: 1.1rem; color: #475569;">DNSC INSTITUTE OF COMPUTING INDUSTRY ADVISORY COUNCIL MEETING through SPRINT-IT</h2>
+                <h2 class="main-event-title" style="font-size: 1.1rem; color: #475569;"><?php echo htmlspecialchars($activeEvent['title']); ?></h2>
                 <div class="event-details">
-                    <p>Venue: DNSC GAD Conference Room and Via MS Teams</p>
-                    <p>Date: May 4, 2026 8:00-1:00 PM</p>
+                    <p>Venue: <?php echo htmlspecialchars($activeEvent['venue']); ?></p>
+                    <p>Date: <?php echo htmlspecialchars($activeEvent['event_date']); ?></p>
                 </div>
             </div>
 
-            <img src="assets/images/iclogo.png" alt="IC" class="header-logo" style="height: 120px;" onerror="this.style.display='none'">
+            <img src="assets/images/iclogo.png" alt="IC" class="header-logo" onerror="this.style.display='none'">
         </div>
     </header>
 
@@ -321,7 +382,7 @@
             isFetching = true;
 
             $.ajax({
-                url: 'api/fetch_signatures.php',
+                url: 'api/fetch_signatures',
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
@@ -348,7 +409,7 @@
                                     <div class="signature-item ${!isFirstLoad ? 'new-sig' : ''}" 
                                          style="left: ${left}%; top: ${top}%; --rot: ${rotation}deg; --scale: ${scale};">
                                         ${!isFirstLoad ? '<div class="latest-indicator">JUST SIGNED!</div>' : ''}
-                                        <img src="assets/signatures/${sig.signature_file}" alt="" class="signature-img" onerror="$(this).parent().hide();">
+                                        <img src="assets/signatures/${sig.signature_file}" alt="Signature" class="signature-img">
                                     </div>
                                 `);
 

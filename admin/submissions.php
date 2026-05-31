@@ -12,20 +12,60 @@ $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $limit = 15;
 $offset = ($page - 1) * $limit;
 
+// Fetch events for dropdown
+$eventsStmt = $pdo->query("SELECT id, title, is_active FROM events ORDER BY created_at DESC");
+$eventsList = $eventsStmt->fetchAll();
+
+// Determine current event filter
+$isAllEvents = isset($_GET['event_id']) && $_GET['event_id'] === 'all';
+$currentEventId = isset($_GET['event_id']) && $_GET['event_id'] !== 'all' ? (int)$_GET['event_id'] : 0;
+
+if (!$isAllEvents && $currentEventId === 0 && !isset($_GET['event_id'])) {
+    foreach ($eventsList as $ev) {
+        if ($ev['is_active']) {
+            $currentEventId = $ev['id'];
+            break;
+        }
+    }
+    // Fallback if no active
+    if ($currentEventId === 0 && count($eventsList) > 0) $currentEventId = $eventsList[0]['id'];
+}
+
 // Fetch total count for pagination
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
-$totalSubmissions = $totalStmt->fetchColumn();
+if ($isAllEvents) {
+    $totalStmt = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
+    $totalSubmissions = $totalStmt->fetchColumn();
+} else {
+    $totalStmt = $pdo->prepare("SELECT COUNT(*) FROM covenant_submissions WHERE event_id = ?");
+    $totalStmt->execute([$currentEventId]);
+    $totalSubmissions = $totalStmt->fetchColumn();
+}
 $totalPages = ceil($totalSubmissions / $limit);
 
 // Fetch submissions
-$stmt = $pdo->prepare("SELECT c.*, u.full_name, u.email 
-                       FROM covenant_submissions c 
-                       LEFT JOIN users u ON c.user_id = u.id 
-                       ORDER BY c.signed_at DESC 
-                       LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
+if ($isAllEvents) {
+    $stmt = $pdo->prepare("SELECT c.*, u.full_name, u.email, e.title as event_title
+                           FROM covenant_submissions c 
+                           LEFT JOIN users u ON c.user_id = u.id 
+                           LEFT JOIN events e ON c.event_id = e.id
+                           ORDER BY c.signed_at DESC 
+                           LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+} else {
+    $stmt = $pdo->prepare("SELECT c.*, u.full_name, u.email, e.title as event_title
+                           FROM covenant_submissions c 
+                           LEFT JOIN users u ON c.user_id = u.id 
+                           LEFT JOIN events e ON c.event_id = e.id
+                           WHERE c.event_id = :event_id
+                           ORDER BY c.signed_at DESC 
+                           LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':event_id', $currentEventId, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+}
 $submissions = $stmt->fetchAll();
 
 // Handle Delete Action
@@ -53,7 +93,7 @@ if (isset($_GET['delete'])) {
         logActivity($pdo, $_SESSION['user_id'], 'submission_management', "Deleted covenant submission ID $id");
 
         $_SESSION['msg'] = "Submission deleted successfully.";
-        header("Location: submissions.php");
+        header("Location: submissions");
         exit;
     }
 }
@@ -94,7 +134,7 @@ if (isset($_GET['delete'])) {
     <div class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar-logo d-flex align-items-center gap-2 mb-4">
             <img src="../assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
-            <img src="../assets/images/iclogo.png" alt="IC" style="height: 42px; margin-top: -2px;">
+            <img src="../assets/images/iclogo.png" alt="IC" style="height: 35px;">
             <div class="ms-1">
                 <span style="color: #2e1065;">IAC</span> <span style="color: var(--accent-core);">Covenant</span>
             </div>
@@ -102,6 +142,12 @@ if (isset($_GET['delete'])) {
         <ul class="nav nav-admin flex-column">
             <li class="nav-item">
                 <a href="dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a href="analytics" class="nav-link"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+            </li>
+            <li class="nav-item">
+                <a href="events" class="nav-link"><i class="fa-solid fa-calendar-alt"></i> Events</a>
             </li>
             <li class="nav-item">
                 <a href="attendance" class="nav-link"><i class="fa-solid fa-user-check"></i> Attendance</a>
@@ -134,14 +180,24 @@ if (isset($_GET['delete'])) {
 
     <!-- Main Content -->
     <div class="admin-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
             <div>
-                <h3 style="font-family: 'Outfit'; font-weight: 700; color: var(--accent-deep);">Covenant Submissions
-                </h3>
+                <h3 style="font-family: 'Outfit'; font-weight: 700; color: var(--accent-deep);">Covenant Submissions</h3>
                 <p class="text-muted mb-0">Manage and view all signed digital certificates.</p>
             </div>
-            <div>
-                <a href="export_csv" class="btn btn-tech btn-sm px-4">Export to CSV</a>
+            <div class="d-flex gap-2 align-items-center">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <label class="fw-bold small text-muted text-nowrap">Filter by Event:</label>
+                    <select name="event_id" class="form-select form-select-sm" style="max-width: 300px;" onchange="this.form.submit()">
+                        <option value="all" <?php echo $isAllEvents ? 'selected' : ''; ?>>All Events Combined</option>
+                        <?php foreach($eventsList as $ev): ?>
+                            <option value="<?php echo $ev['id']; ?>" <?php echo (!$isAllEvents && $ev['id'] == $currentEventId) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ev['title']); ?> <?php echo $ev['is_active'] ? '(Active)' : ''; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                <a href="export_csv?event_id=<?php echo $isAllEvents ? 'all' : $currentEventId; ?>" class="btn btn-tech btn-sm px-4 text-nowrap">Export to CSV</a>
             </div>
         </div>
 
@@ -211,7 +267,7 @@ if (isset($_GET['delete'])) {
                     <ul class="pagination justify-content-center">
                         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                             <li class="page-item <?php echo ($page == $i) ? 'active' : ''; ?>">
-                                <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                <a class="page-link" href="?event_id=<?php echo $currentEventId; ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
                             </li>
                         <?php endfor; ?>
                     </ul>
@@ -275,6 +331,7 @@ if (isset($_GET['delete'])) {
 </body>
 
 </html>
+
 
 
 

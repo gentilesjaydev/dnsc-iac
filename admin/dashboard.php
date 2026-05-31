@@ -6,15 +6,45 @@ require_once '../includes/auth.php';
 // Enforce admin access only
 requireAdmin();
 
-// Fetch statistics
-$stmtTotalSignatories = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
-$totalSignatories = $stmtTotalSignatories->fetchColumn();
+// Fetch events for dropdown
+$eventsStmt = $pdo->query("SELECT id, title, is_active FROM events ORDER BY created_at DESC");
+$eventsList = $eventsStmt->fetchAll();
 
-// Fetch recent submissions
-$stmtRecent = $pdo->query("SELECT c.*, u.full_name, u.email 
-                           FROM covenant_submissions c 
-                           LEFT JOIN users u ON c.user_id = u.id 
-                           ORDER BY c.signed_at DESC LIMIT 10");
+// Determine current event filter
+$isAllEvents = isset($_GET['event_id']) && $_GET['event_id'] === 'all';
+$currentEventId = isset($_GET['event_id']) && $_GET['event_id'] !== 'all' ? (int)$_GET['event_id'] : 0;
+
+if (!$isAllEvents && $currentEventId === 0 && !isset($_GET['event_id'])) {
+    foreach ($eventsList as $ev) {
+        if ($ev['is_active']) {
+            $currentEventId = $ev['id'];
+            break;
+        }
+    }
+    if ($currentEventId === 0 && count($eventsList) > 0) $currentEventId = $eventsList[0]['id'];
+}
+
+// Fetch statistics
+if ($isAllEvents) {
+    $stmtTotalSignatories = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
+    $totalSignatories = $stmtTotalSignatories->fetchColumn();
+
+    $stmtRecent = $pdo->query("SELECT c.*, u.full_name, u.email 
+                               FROM covenant_submissions c 
+                               LEFT JOIN users u ON c.user_id = u.id 
+                               ORDER BY c.signed_at DESC LIMIT 10");
+} else {
+    $stmtTotalSignatories = $pdo->prepare("SELECT COUNT(*) FROM covenant_submissions WHERE event_id = ?");
+    $stmtTotalSignatories->execute([$currentEventId]);
+    $totalSignatories = $stmtTotalSignatories->fetchColumn();
+
+    $stmtRecent = $pdo->prepare("SELECT c.*, u.full_name, u.email 
+                               FROM covenant_submissions c 
+                               LEFT JOIN users u ON c.user_id = u.id 
+                               WHERE c.event_id = ?
+                               ORDER BY c.signed_at DESC LIMIT 10");
+    $stmtRecent->execute([$currentEventId]);
+}
 $recentSubmissions = $stmtRecent->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -55,7 +85,7 @@ $recentSubmissions = $stmtRecent->fetchAll();
     <div class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar-logo d-flex align-items-center gap-2 mb-4">
             <img src="../assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
-            <img src="../assets/images/iclogo.png" alt="IC" style="height: 42px; margin-top: -2px;">
+            <img src="../assets/images/iclogo.png" alt="IC" style="height: 35px;">
             <div class="ms-1">
                 <span style="color: #2e1065;">IAC</span> <span style="color: var(--accent-core);">Covenant</span>
             </div>
@@ -63,6 +93,12 @@ $recentSubmissions = $stmtRecent->fetchAll();
         <ul class="nav nav-admin flex-column">
             <li class="nav-item">
                 <a href="dashboard" class="nav-link active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a href="analytics" class="nav-link"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+            </li>
+            <li class="nav-item">
+                <a href="events" class="nav-link"><i class="fa-solid fa-calendar-alt"></i> Events</a>
             </li>
             <li class="nav-item">
                 <a href="attendance" class="nav-link"><i class="fa-solid fa-user-check"></i> Attendance</a>
@@ -93,23 +129,38 @@ $recentSubmissions = $stmtRecent->fetchAll();
     </div>
 
     <div class="admin-content">
-        <div class="d-flex justify-content-between align-items-end mb-5 animate-fade-in">
+        <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-5 animate-fade-in">
             <div>
-                <h1
-                    style="font-family: 'Outfit'; font-weight: 800; font-size: 2.2rem; color: #2e1065; margin-bottom: 0.25rem;">
-                    Event Overview</h1>
+                <h1 style="font-family: 'Outfit'; font-weight: 800; font-size: 2.2rem; color: #2e1065; margin-bottom: 0.25rem;">Event Overview</h1>
                 <p class="text-muted fw-medium mb-0">Welcome back, administrator. Here's what's happening today.</p>
             </div>
-            <div class="d-flex gap-3">
-                <a href="export_csv" class="btn btn-tech px-4 py-2 shadow-neon fw-bold" style="border-radius: 12px;">
+            <div class="d-flex gap-3 align-items-center">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <label class="fw-bold small text-muted text-nowrap">Showcase Event:</label>
+                    <select name="event_id" class="form-select form-select-sm" style="max-width: 300px; height: 38px;" onchange="this.form.submit()">
+                        <option value="all" <?php echo $isAllEvents ? 'selected' : ''; ?>>All Events Combined</option>
+                        <?php foreach($eventsList as $ev): ?>
+                            <option value="<?php echo $ev['id']; ?>" <?php echo (!$isAllEvents && $ev['id'] == $currentEventId) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ev['title']); ?> <?php echo $ev['is_active'] ? '(Active)' : ''; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                <a href="export_csv?event_id=<?php echo $isAllEvents ? 'all' : $currentEventId; ?>" class="btn btn-tech px-4 py-2 shadow-neon fw-bold text-nowrap" style="border-radius: 12px; height: 38px;">
                     <i class="fa-solid fa-download me-2"></i> Export Data
                 </a>
             </div>
         </div>
 
         <?php
-        $stmtToday = $pdo->query("SELECT COUNT(*) FROM covenant_submissions WHERE DATE(signed_at) = CURDATE()");
-        $signingsToday = $stmtToday->fetchColumn();
+        if ($isAllEvents) {
+            $stmtToday = $pdo->query("SELECT COUNT(*) FROM covenant_submissions WHERE DATE(signed_at) = CURDATE()");
+            $signingsToday = $stmtToday->fetchColumn();
+        } else {
+            $stmtToday = $pdo->prepare("SELECT COUNT(*) FROM covenant_submissions WHERE DATE(signed_at) = CURDATE() AND event_id = ?");
+            $stmtToday->execute([$currentEventId]);
+            $signingsToday = $stmtToday->fetchColumn();
+        }
         ?>
 
         <div class="row g-4 mb-5">
@@ -300,8 +351,9 @@ $recentSubmissions = $stmtRecent->fetchAll();
 
         // Real-time Dashboard Updates
         function updateDashboard() {
+            const eventParam = '<?php echo $isAllEvents ? "all" : $currentEventId; ?>';
             $.ajax({
-                url: '../api/admin_dashboard_data',
+                url: '../api/admin_dashboard_data?event_id=' + eventParam,
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {

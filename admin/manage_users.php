@@ -79,7 +79,7 @@ $users = $stmt->fetchAll();
     <div class="admin-sidebar shadow-sm">
         <div class="admin-sidebar-logo d-flex align-items-center gap-2 mb-4 justify-content-center">
             <img src="../assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
-            <img src="../assets/images/iclogo.png" alt="IC" style="height: 42px; margin-top: -2px;">
+            <img src="../assets/images/iclogo.png" alt="IC" style="height: 35px;">
             <div class="ms-1 text-start">
                 <span style="color: #5b21b6; display: block; font-size: 1rem;">IAC</span>
                 <span style="color: var(--accent-core); display: block; font-size: 1rem;">Covenant</span>
@@ -179,6 +179,7 @@ $users = $stmt->fetchAll();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
 
 
 

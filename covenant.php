@@ -1,6 +1,60 @@
     <?php
     session_start();
     require_once 'includes/db.php';
+    // Fetch active event
+    $stmt = $pdo->query("SELECT * FROM events WHERE is_active = 1 LIMIT 1");
+    $activeEvent = $stmt->fetch();
+    if (!$activeEvent) {
+        ?>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>No Active Event - IAC Covenant</title>
+            <link rel="shortcut icon" href="assets/images/iclogo.png" type="image/x-icon">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    background-color: #0f172a;
+                    color: white;
+                    font-family: 'Outfit', sans-serif;
+                    height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0;
+                }
+                .message-box {
+                    text-align: center;
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 4rem 3rem;
+                    border-radius: 24px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(10px);
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+                    max-width: 600px;
+                }
+                img[src*="iclogo.png"] {
+                    transform: scale(1.35) !important;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="message-box">
+                <img src="assets/images/dnsclogo.png" alt="DNSC" style="height: 60px; margin-bottom: 2rem; margin-right: 15px;">
+                <img src="assets/images/iclogo.png" alt="IC" style="height: 60px; margin-bottom: 2rem;">
+                <h1 style="font-weight: 800; font-size: 2.5rem; margin-bottom: 1rem;">No Active Event</h1>
+                <p style="color: #94a3b8; font-size: 1.1rem; line-height: 1.6; margin-bottom: 0;">
+                    There is currently no active signing event. The covenant module is locked until the administrator activates a new event.
+                </p>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
     // No login required - one-day event guest mode
     ?>
     <!DOCTYPE html>
@@ -323,9 +377,10 @@
         <!-- Navigation Bar -->
         <nav class="main-nav sticky-top d-flex align-items-center shadow-sm">
             <div class="container d-flex justify-content-between align-items-center">
-                <a href="index" class="text-decoration-none">
-                    <div class="nav-logo-text"><span class="logo-raise">IAC</span> <span class="logo-davao">Covenant</span>
-                    </div>
+                <a href="index" class="text-decoration-none d-flex align-items-center gap-2">
+                    <img src="assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
+                    <img src="assets/images/iclogo.png" alt="IC" style="height: 35px;">
+                    <div class="nav-logo-text ms-2"><span class="logo-raise">IAC</span> <span class="logo-davao">Covenant</span></div>
                 </a>
 
                 <div class="d-flex align-items-center gap-2 gap-md-4">
@@ -361,15 +416,15 @@
                 <h1 class="fw-bold mb-2" style="font-family: 'Outfit'; font-size: 2.8rem; letter-spacing: -0.5px;">The Covenant of <span style="color: rgba(167, 139, 250, 1);">Commitment</span></h1>
                 
                 <p class="mx-auto mb-0" style="max-width: 620px; font-size: 1rem; color: rgba(255,255,255,0.6); line-height: 1.7; font-weight: 400;">
-                    Industry Advisory Council Meeting through SPRINT-IT
+                    <?php echo htmlspecialchars($activeEvent['title']); ?>
                 </p>
                 
                 <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1.25rem; border-radius: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.8); font-weight: 500;">
-                        <i class="fa-regular fa-calendar me-2" style="color: rgba(167,139,250,0.9);"></i>May 4, 2026 · 8:00 AM – 1:00 PM
+                        <i class="fa-regular fa-calendar me-2" style="color: rgba(167,139,250,0.9);"></i><?php echo htmlspecialchars($activeEvent['event_date']); ?>
                     </div>
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1.25rem; border-radius: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.8); font-weight: 500;">
-                        <i class="fa-regular fa-building me-2" style="color: rgba(167,139,250,0.9);"></i>DNSC GAD Conference Room & Via MS Teams
+                        <i class="fa-regular fa-building me-2" style="color: rgba(167,139,250,0.9);"></i><?php echo htmlspecialchars($activeEvent['venue']); ?>
                     </div>
                 </div>
             </div>
@@ -606,8 +661,57 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-8 form-body-side">
-                        <form id="covenantForm" action="submit_covenant.php" method="POST">
+                    <div class="col-lg-8 form-body-side" style="position: relative; min-height: 500px;">
+                        <?php
+                        $signingAllowed = true;
+                        $blockingReason = "";
+                        $blockTitle = "Signing Currently Disabled";
+                        $blockIcon = "fa-lock text-danger";
+                        
+                        $eventDateRaw = $activeEvent['event_date'];
+                        $eventYMD = date('Y-m-d', strtotime($eventDateRaw));
+                        $todayYMD = date('Y-m-d');
+
+                        if (isset($activeEvent['is_signing_open']) && $activeEvent['is_signing_open'] == 0) {
+                            $signingAllowed = false;
+                            if ($eventYMD > $todayYMD) {
+                                $blockTitle = "Upcoming Event Registration";
+                                $blockIcon = "fa-calendar-days text-primary";
+                                $blockingReason = "We are excited to have you! The signing portal for '" . htmlspecialchars($activeEvent['title']) . "' will officially open on " . date('F j, Y', strtotime($eventDateRaw)) . ". Please check back then.";
+                            } else {
+                                $blockTitle = "Submissions Closed";
+                                $blockIcon = "fa-door-closed text-secondary";
+                                $blockingReason = "The administrator has officially closed the signing form for this event. Thank you for your interest.";
+                            }
+                        } elseif (isset($activeEvent['is_exact_date_only']) && $activeEvent['is_exact_date_only'] == 1) {
+                            if ($eventYMD > $todayYMD) {
+                                $signingAllowed = false;
+                                $blockTitle = "Registration Opens Soon";
+                                $blockIcon = "fa-hourglass-half text-warning";
+                                $blockingReason = "The digital covenant for '" . htmlspecialchars($activeEvent['title']) . "' is scheduled to accept signatures strictly on the event date: " . date('F j, Y', strtotime($eventDateRaw)) . ". We look forward to your participation!";
+                            } elseif ($eventYMD < $todayYMD) {
+                                $signingAllowed = false;
+                                $blockTitle = "Event Concluded";
+                                $blockIcon = "fa-circle-check text-success";
+                                $blockingReason = "This event concluded on " . date('F j, Y', strtotime($eventDateRaw)) . " and submissions are now permanently closed. Thank you to everyone who participated!";
+                            }
+                        }
+                        ?>
+                        
+                        <?php if (!$signingAllowed): ?>
+                            <!-- Overlay blocking the form -->
+                            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); z-index: 10; display: flex; align-items: center; justify-content: center; border-radius: 16px;">
+                                <div class="text-center p-4 bg-white shadow-lg rounded-4 border" style="max-width: 90%;">
+                                    <i class="fa-solid <?php echo $blockIcon; ?> mb-3" style="font-size: 3rem;"></i>
+                                    <h4 class="fw-bold" style="font-family: 'Outfit';"><?php echo $blockTitle; ?></h4>
+                                    <p class="text-muted mb-0 mt-2" style="font-size: 1rem; line-height: 1.5; max-width: 400px; margin: 0 auto;">
+                                        <?php echo htmlspecialchars($blockingReason); ?>
+                                    </p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <form id="covenantForm" action="submit_covenant.php" method="POST" <?php echo (!$signingAllowed) ? 'style="opacity: 0.4; pointer-events: none;"' : ''; ?>>
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small text-muted text-uppercase"><i
@@ -738,13 +842,14 @@
                                 <div class="text-start">
                                     <p class="mb-0 small fw-bold">Digitally Stamping on:</p>
                                     <h5 class="fw-bold text-primary mb-0" id="dateSignedDisplay"
-                                        style="font-family: 'Outfit';">May 4, 2026</h5>
+                                        style="font-family: 'Outfit';"><?php echo date('F j, Y'); ?></h5>
                                 </div>
                                 <button type="submit" class="btn btn-seal px-5 py-3 fs-5" id="btnSealCommitment">
                                     <i class="fa-solid fa-file-signature me-2"></i> SEAL THE COMMITMENT
                                 </button>
                             </div>
                         </form>
+
                     </div>
                 </div>
             </div>
@@ -758,7 +863,7 @@
                     <div class="col-lg-5">
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <img src="assets/images/dnsclogo.png" alt="DNSC" style="height: 45px;">
-                            <img src="assets/images/iclogo.png" alt="IC" style="height: 54px; margin-top: -4px;">
+                            <img src="assets/images/iclogo.png" alt="IC" style="height: 45px;">
                         </div>
                         <div class="footer-logo mb-3">IAC <span class="text-primary">Covenant</span></div>
                         <p class="text-muted mb-4" style="max-width: 400px; line-height: 1.8;">
@@ -782,10 +887,8 @@
                     <div class="col-md-4 col-lg-2">
                         <h6 class="fw-bold mb-4">Event Details</h6>
                         <ul class="list-unstyled d-grid gap-2">
-                            <li class="footer-link"><i class="fa-solid fa-calendar-day me-2 small opacity-75"></i>May 4, 2026</li>
-                            <li class="footer-link"><i class="fa-solid fa-location-dot me-2 small opacity-75"></i>DNSC GAD Conference Room & MS Teams</li>
-                            <li class="footer-link"><i class="fa-solid fa-clock me-2 small opacity-75"></i>8:00 AM - 1:00 PM
-                            </li>
+                            <li class="footer-link"><i class="fa-solid fa-calendar-day me-2 small opacity-75"></i><?php echo htmlspecialchars($activeEvent['event_date']); ?></li>
+                            <li class="footer-link"><i class="fa-solid fa-location-dot me-2 small opacity-75"></i><?php echo htmlspecialchars($activeEvent['venue']); ?></li>
                         </ul>
                     </div>
                     <div class="col-md-4 col-lg-3">
@@ -826,11 +929,11 @@
                     <div class="modal-body" style="padding: 2.5rem;">
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <img src="assets/images/dnsclogo.png" alt="DNSC" style="height: 50px;">
-                            <img src="assets/images/iclogo.png" alt="IC" style="height: 62px; margin-top: -6px;">
+                            <img src="assets/images/iclogo.png" alt="IC" style="height: 50px;">
                             <div class="ms-2">
                                 <div class="fw-bold small">DNSC Institute of Computing - Industry Advisory Council (IAC)</div>
-                                <div class="text-muted small">Venue: DNSC GAD Conference Room and Via MS Teams
-                                    &nbsp;|&nbsp; May 4, 2026 &nbsp;|&nbsp; 8:00-1:00 PM</div>
+                                <div class="text-muted small">Venue: <?php echo htmlspecialchars($activeEvent['venue']); ?>
+                                    &nbsp;|&nbsp; <?php echo htmlspecialchars($activeEvent['event_date']); ?></div>
                             </div>
                         </div>
                         <hr>

@@ -1,12 +1,14 @@
 Options -Indexes
 RewriteEngine On
 
-# Redirect /file.php to /file
+# Redirect /path/file.php to /path/file
 RewriteCond %{REQUEST_METHOD} GET
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /([^/]+)\.php\ HTTP/
-RewriteRule ^(.+)\.php$ $1 [R=301,L]
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.php[\s?]
+RewriteRule ^ - [R=301,E=REDIR_PATH:/%1]
+RewriteCond %{ENV:REDIR_PATH} .
+RewriteRule ^ %{ENV:REDIR_PATH} [R=301,L]
 
 # Hide .php extension (internal rewrite)
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}\.php -f
-RewriteRule ^([^\.]+)$ $1.php [NC,L]
+RewriteRule ^(.*)$ $1.php [L]

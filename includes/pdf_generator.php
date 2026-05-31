@@ -3,6 +3,10 @@ require_once __DIR__ . '/../vendor/fpdf/fpdf.php';
 
 class CovenantPDF extends FPDF
 {
+    public $eventVenue = "DNSC GAD Conference Room and Via MS Teams";
+    public $eventDate = "May 4, 2026 8:00-1:00 PM";
+    public $eventTitle = "The Covenant of Commitment";
+
     // Page header
     function Header()
     {
@@ -25,11 +29,11 @@ class CovenantPDF extends FPDF
         $this->SetY(15);
         $this->SetFont('Arial', 'B', 10);
         $this->SetX(40);
-        $this->MultiCell(130, 5, 'DNSC Institute of Computing - Industry Advisory Council (IAC)', 0, 'C');
+        $this->MultiCell(130, 5, $this->eventTitle, 0, 'C');
 
         $this->SetX(40);
         $this->SetFont('Arial', '', 9);
-        $this->MultiCell(130, 4, "Venue: DNSC GAD Conference Room and Via MS Teams\nDate: May 4, 2026 8:00-1:00 PM", 0, 'C');
+        $this->MultiCell(130, 4, "Venue: " . $this->eventVenue . "\nDate: " . $this->eventDate, 0, 'C');
 
         $this->Ln(8);
 
@@ -47,7 +51,7 @@ class CovenantPDF extends FPDF
      * Helper to clean PNGs that cause distortion in FPDF 
      * Converts to high quality JPEG on the fly
      */
-    public function getCleanImagePath($path, $prefix)
+    public function getCleanImagePath(string $path, string $prefix): string
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if ($ext !== 'png')
@@ -87,9 +91,14 @@ class CovenantPDF extends FPDF
     }
 }
 
-function generateCovenantPDF($submission_data, $signature_path, $output_filename)
+function generateCovenantPDF(array $submission_data, string $signature_path, string $output_filename, ?array $activeEvent = null)
 {
     $pdf = new CovenantPDF();
+    if ($activeEvent) {
+        $pdf->eventVenue = $activeEvent['venue'];
+        $pdf->eventDate = $activeEvent['event_date'];
+        $pdf->eventTitle = $activeEvent['title'];
+    }
     $pdf->AliasNbPages();
     // 20mm margins for a superior printed look (Left, Top, Right)
     $pdf->SetMargins(20, 20, 20);
@@ -217,13 +226,28 @@ function generateCovenantPDF($submission_data, $signature_path, $output_filename
         // CLEAN THE SIGNATURE: signaturePad PNGs often have alpha/interlacing that FPDF hates
         $cleanSignaturePath = $pdf->getCleanImagePath($signature_path, 'sig_' . time());
         
-        // Centering the Signature over the dynamic line
+        // Get image dimensions to maintain aspect ratio and prevent massive vertical bleed
+        list($imgWidth, $imgHeight) = getimagesize($cleanSignaturePath);
+        $ratio = $imgWidth / $imgHeight;
+
         // Enforce minimum 50mm width for readability on short names
-        $sigWidth = max($lineWidth * 1.5, 50); 
-        $sigX = $startX + ($lineWidth / 2) - ($sigWidth / 2);
+        $targetWidth = max($lineWidth * 1.5, 50); 
+        $targetHeight = $targetWidth / $ratio;
+
+        // Constrain max height to 25mm to avoid covering text below
+        $maxHeight = 25;
+        if ($targetHeight > $maxHeight) {
+            $targetHeight = $maxHeight;
+            $targetWidth = $targetHeight * $ratio;
+        }
+
+        // Center over the line
+        $sigX = $startX + ($lineWidth / 2) - ($targetWidth / 2);
         $currY = $pdf->GetY();
-        // Positioned to sit ON the line and touch the name for authenticity
-        $pdf->Image($cleanSignaturePath, $sigX, $currY - 15, $sigWidth);
+        
+        // Position the center of the image slightly above the line to account for canvas padding
+        $sigY = $currY - ($targetHeight / 2) - 5;
+        $pdf->Image($cleanSignaturePath, $sigX, $sigY, $targetWidth, $targetHeight);
     }
 
     // Signature Line - Matches name length EXACTLY

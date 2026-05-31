@@ -6,13 +6,24 @@ require_once '../includes/auth.php';
 // Enforce admin access
 requireAdmin();
 
-$filename = "raise_davao_submissions_" . date('Y-m-d') . ".csv";
+$eventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
 
-// Fetch all submissions
-$stmt = $pdo->query("SELECT c.*, u.full_name, u.email as user_email 
-                     FROM covenant_submissions c 
-                     LEFT JOIN users u ON c.user_id = u.id 
-                     ORDER BY c.signed_at DESC");
+$filename = "iac_covenant_submissions_" . date('Y-m-d') . ".csv";
+
+// Fetch submissions
+if ($eventId > 0) {
+    $stmt = $pdo->prepare("SELECT c.*, u.full_name, u.email as user_email 
+                         FROM covenant_submissions c 
+                         LEFT JOIN users u ON c.user_id = u.id 
+                         WHERE c.event_id = ?
+                         ORDER BY c.signed_at DESC");
+    $stmt->execute([$eventId]);
+} else {
+    $stmt = $pdo->query("SELECT c.*, u.full_name, u.email as user_email 
+                         FROM covenant_submissions c 
+                         LEFT JOIN users u ON c.user_id = u.id 
+                         ORDER BY c.signed_at DESC");
+}
 $submissions = $stmt->fetchAll();
 
 // Set headers for download

@@ -1,5 +1,5 @@
 <?php
-file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - Script start\n", FILE_APPEND);
+
 session_start();
 require_once 'includes/db.php';
 require_once 'includes/logger.php';
@@ -7,7 +7,7 @@ require_once 'includes/logger.php';
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - POST Request Received\n", FILE_APPEND);
+
 
     // 1. Gather form data
     $organization_name = trim($_POST['organization_name'] ?? '');
@@ -19,7 +19,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $signature_data = $_POST['signature_data'] ?? '';
     $ip_address = $_SERVER['REMOTE_ADDR'];
 
-    file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - Data: $represented_by ($organization_name)\n", FILE_APPEND);
+    // Get active event ID
+    $stmtEvent = $pdo->query("SELECT * FROM events WHERE is_active = 1 LIMIT 1");
+    $activeEvent = $stmtEvent->fetch();
+    if (!$activeEvent) {
+        $_SESSION['error_msg'] = "Submissions are currently locked because there is no active event.";
+        header("Location: covenant.php");
+        exit;
+    }
+    
+    // Check if signing is allowed for this event
+    $eventDateRaw = $activeEvent['event_date'];
+    $eventYMD = date('Y-m-d', strtotime($eventDateRaw));
+    $todayYMD = date('Y-m-d');
+
+    if (isset($activeEvent['is_signing_open']) && $activeEvent['is_signing_open'] == 0) {
+        $_SESSION['error_msg'] = "The administrator has closed the signing form for this event.";
+        header("Location: covenant.php");
+        exit;
+    } elseif (isset($activeEvent['is_exact_date_only']) && $activeEvent['is_exact_date_only'] == 1) {
+        if ($eventYMD !== $todayYMD) {
+            $_SESSION['error_msg'] = "Signing for this event is strictly allowed only on the specific event date.";
+            header("Location: covenant.php");
+            exit;
+        }
+    }
+    
+    $activeEventId = $activeEvent['id'];
+
+
 
     // Basic Validation
     if (empty($organization_name) || empty($institution_type) || empty($represented_by) || empty($email_address) || empty($signature_data)) {
@@ -78,10 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'ip_address' => $ip_address
         ];
 
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - Generating PDF...\n", FILE_APPEND);
+
         // Generate the PDF
-        generateCovenantPDF($submission_data, $file_path, $pdf_path);
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - PDF Generated: $pdf_path\n", FILE_APPEND);
+        generateCovenantPDF($submission_data, $file_path, $pdf_path, $activeEvent);
+
 
         // 4. Generate Random Positioning for the Signature Wall
         $pos_left = rand(5, 85) + (mt_rand() / mt_getrandmax());
@@ -89,12 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pos_rotation = rand(-12, 12) + (mt_rand() / mt_getrandmax());
         $pos_scale = 0.85 + ((mt_rand() / mt_getrandmax()) * 0.3);
 
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - Inserting to DB...\n", FILE_APPEND);
+
         $stmt = $pdo->prepare("INSERT INTO covenant_submissions 
-            (user_id, organization_name, institution_type, represented_by, position_title, email_address, contact_number, signature_file, pdf_file, ip_address, pos_left, pos_top, pos_rotation, pos_scale) 
-            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (event_id, user_id, organization_name, institution_type, represented_by, position_title, email_address, contact_number, signature_file, pdf_file, ip_address, pos_left, pos_top, pos_rotation, pos_scale) 
+            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->execute([
+            $activeEventId,
             $organization_name,
             $institution_type,
             $represented_by,
@@ -111,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $submission_id = $pdo->lastInsertId();
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - DB Inserted. ID: $submission_id\n", FILE_APPEND);
+
 
         // 6. Log the activity (Guest mode)
         logActivity($pdo, NULL, 'covenant_signed', "Guest '$represented_by' signed the covenant for '$organization_name'", $represented_by);
@@ -119,18 +148,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 7. Trigger Email via Brevo API (Wrapped to prevent hangs)
         try {
             require_once 'includes/brevo_mailer.php';
-            @sendCovenantEmail($email_address, $represented_by, $pdf_path);
+            @sendCovenantEmail($email_address, $represented_by, $pdf_path, $activeEvent);
         } catch (Exception $mailEx) {
             error_log("Email notification failed: " . $mailEx->getMessage());
         }
 
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - Redirecting to success...\n", FILE_APPEND);
+
         // Redirect to Success Page
         header("Location: success?id=" . $submission_id);
         exit;
 
     } catch (Exception $e) {
-        file_put_contents(__DIR__ . '/debug_submit.log', date('Y-m-d H:i:s') . " - ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+
         if (isset($file_path) && file_exists($file_path))
             unlink($file_path);
         $_SESSION['error_msg'] = "Error: " . $e->getMessage();

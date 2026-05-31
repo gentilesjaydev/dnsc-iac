@@ -8,7 +8,7 @@ requireLogin();
 
 // Redirect admins to their dashboard
 if (isAdmin()) {
-    header("Location: admin/dashboard.php");
+    header("Location: admin/dashboard");
     exit;
 }
 
@@ -153,7 +153,7 @@ $submissions = $stmt->fetchAll();
         <div class="container d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
                 <img src="assets/images/dnsclogo.png" alt="DNSC" style="height: 40px;">
-                <img src="assets/images/iclogo.png" alt="IC" style="height: 48px; margin-top: -4px;">
+                <img src="assets/images/iclogo.png" alt="IC" style="height: 40px;">
                 <h4 style="font-family: 'Outfit'; font-weight: 800; color: var(--text-dark); margin: 0; padding-left: 10px; border-left: 2px solid var(--border-subtle);">
                     IAC <span style="color: var(--accent-core);">Covenant</span>
                 </h4>

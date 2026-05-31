@@ -11,19 +11,55 @@ $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
+// Fetch events for dropdown
+$eventsStmt = $pdo->query("SELECT id, title, is_active FROM events ORDER BY created_at DESC");
+$eventsList = $eventsStmt->fetchAll();
+
+// Determine current event filter
+$isAllEvents = isset($_GET['event_id']) && $_GET['event_id'] === 'all';
+$currentEventId = isset($_GET['event_id']) && $_GET['event_id'] !== 'all' ? (int)$_GET['event_id'] : 0;
+
+if (!$isAllEvents && $currentEventId === 0 && !isset($_GET['event_id'])) {
+    foreach ($eventsList as $ev) {
+        if ($ev['is_active']) {
+            $currentEventId = $ev['id'];
+            break;
+        }
+    }
+    if ($currentEventId === 0 && count($eventsList) > 0) $currentEventId = $eventsList[0]['id'];
+}
+
 // Fetch total count for pagination
-$totalStmt = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
-$totalAttendees = $totalStmt->fetchColumn();
+if ($isAllEvents) {
+    $totalStmt = $pdo->query("SELECT COUNT(*) FROM covenant_submissions");
+    $totalAttendees = $totalStmt->fetchColumn();
+} else {
+    $totalStmt = $pdo->prepare("SELECT COUNT(*) FROM covenant_submissions WHERE event_id = ?");
+    $totalStmt->execute([$currentEventId]);
+    $totalAttendees = $totalStmt->fetchColumn();
+}
 $totalPages = ceil($totalAttendees / $limit);
 
-// Fetch attendees (represented_by from covenant_submissions)
-$stmt = $pdo->prepare("SELECT id, represented_by, position_title, organization_name, institution_type, signed_at 
-                       FROM covenant_submissions 
-                       ORDER BY signed_at DESC 
-                       LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
+// Fetch attendees
+if ($isAllEvents) {
+    $stmt = $pdo->prepare("SELECT id, represented_by, position_title, organization_name, institution_type, signed_at 
+                           FROM covenant_submissions 
+                           ORDER BY signed_at DESC 
+                           LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+} else {
+    $stmt = $pdo->prepare("SELECT id, represented_by, position_title, organization_name, institution_type, signed_at 
+                           FROM covenant_submissions 
+                           WHERE event_id = :event_id
+                           ORDER BY signed_at DESC 
+                           LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':event_id', $currentEventId, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+}
 $attendees = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -108,11 +144,22 @@ $attendees = $stmt->fetchAll();
                 <h3 style="font-family: 'Outfit'; font-weight: 700; color: #5b21b6;">Representative Attendance</h3>
                 <p class="text-muted mb-0">List of institutional representatives who have signed and attended.</p>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <form method="GET" class="d-flex align-items-center gap-2">
+                    <label class="fw-bold small text-muted text-nowrap">Filter by Event:</label>
+                    <select name="event_id" class="form-select form-select-sm" style="max-width: 300px;" onchange="this.form.submit()">
+                        <option value="all" <?php echo $isAllEvents ? 'selected' : ''; ?>>All Events Combined</option>
+                        <?php foreach($eventsList as $ev): ?>
+                            <option value="<?php echo $ev['id']; ?>" <?php echo (!$isAllEvents && $ev['id'] == $currentEventId) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($ev['title']); ?> <?php echo $ev['is_active'] ? '(Active)' : ''; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
                 <button onclick="window.print()" class="btn btn-light border px-4">
-                    <i class="fa-solid fa-print me-2"></i> Print List
+                    <i class="fa-solid fa-print me-2"></i> Print
                 </button>
-                <a href="export_csv" class="btn btn-tech px-4">
+                <a href="export_csv?event_id=<?php echo $isAllEvents ? 'all' : $currentEventId; ?>" class="btn btn-tech px-4">
                     <i class="fa-solid fa-download me-2"></i> Export
                 </a>
             </div>

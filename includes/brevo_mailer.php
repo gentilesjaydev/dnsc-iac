@@ -13,7 +13,7 @@ if (file_exists($envPath)) {
     define('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE');
 }
 
-function sendCovenantEmail($recipient_email, $recipient_name, $pdf_path)
+function sendCovenantEmail(string $recipient_email, string $recipient_name, string $pdf_path, ?array $activeEvent = null): bool
 {
 
     $url = "https://api.brevo.com/v3/smtp/email";
@@ -43,7 +43,7 @@ function sendCovenantEmail($recipient_email, $recipient_name, $pdf_path)
                     <!-- Body -->
                     <div style='padding: 40px 30px; color: #1e293b;'>
                         <h2 style='color: #7c3aed; font-size: 22px; margin-top: 0;'>Congratulations, $recipient_name!</h2>
-                        <p style='font-size: 16px; line-height: 1.6;'>You have successfully signed <strong>The Covenant of Commitment</strong>. We are honored to have you join the Industry Advisory Council (IAC) dedicated to bridging the gap between academic preparation and industry excellence through SPRINT-IT.</p>
+                        <p style='font-size: 16px; line-height: 1.6;'>You have successfully signed <strong>The Covenant of Commitment</strong>. We are honored to have you join the Industry Advisory Council (IAC) dedicated to bridging the gap between academic preparation and industry excellence through " . ($activeEvent ? htmlspecialchars($activeEvent['title']) : "SPRINT-IT") . ".</p>
                         
                         <div style='margin: 30px 0; padding: 20px; background-color: #f1f5f9; border-left: 4px solid #7c3aed; border-radius: 4px;'>
                             <p style='margin: 0; font-size: 15px; color: #475569;'>Your signed copy of <strong>The Covenant of Commitment</strong> has been generated and is attached to this email for your records.</p>
@@ -60,7 +60,7 @@ function sendCovenantEmail($recipient_email, $recipient_name, $pdf_path)
                     <!-- Footer -->
                     <div style='background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;'>
                         <p style='margin: 0; font-size: 12px; color: #94a3b8;'>&copy; 2026 DNSC Institute of Computing. All rights reserved.</p>
-                        <p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>DNSC GAD Conference Room and Via MS Teams</p>
+                        <p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>" . ($activeEvent ? htmlspecialchars($activeEvent['venue']) . " | " . htmlspecialchars($activeEvent['event_date']) : "DNSC GAD Conference Room and Via MS Teams") . "</p>
                     </div>
                 </div>
             </div>
