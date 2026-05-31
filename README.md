@@ -1,4 +1,4 @@
-# IAC Covenant - Commitment System (RAISE Davao)
+# DNSC IC IAC - Covenant of Commitment System
 
 A PHP-based Digital Signing System designed to collect digital signatures from partners, generate official stamped PDF certificates, automatically email these documents, and display live updates on a signature wall.
 
