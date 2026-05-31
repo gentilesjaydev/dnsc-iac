@@ -40,3 +40,10 @@ The system is configured via `.htaccess` to use clean, extensionless URLs.
 3. Update database credentials in `includes/db.php`.
 4. Create a `.env` file in the root directory and add your Brevo API Key.
 5. Access the application via your local server (e.g., `http://localhost/DNSC-IAC`).
+
+---
+
+<div align="center">
+  <b>Architected & Developed by <a href="#">Luminari Systems</a></b><br>
+  <i>Empowering Next-Gen Technology & Seamless Digital Experiences</i>
+</div>
