@@ -196,37 +196,7 @@ foreach($uniqueTypes as $type) {
 </head>
 <body>
 
-    <!-- Mobile Toggle -->
-    <div class="admin-mobile-nav d-lg-none bg-white p-3 border-bottom sticky-top d-flex justify-content-between align-items-center">
-        <div class="fw-bold" style="font-family: 'Outfit';">IAC <span class="text-primary">Covenant</span></div>
-        <button class="btn btn-light border" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-    </div>
-
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-    <div class="admin-sidebar" id="adminSidebar">
-        <div class="admin-sidebar-logo d-flex align-items-center gap-2 mb-4">
-            <img src="../assets/images/dnsclogo.png" alt="DNSC" style="height: 35px;">
-            <img src="../assets/images/iclogo.png" alt="IC" style="height: 35px;">
-            <div class="ms-1">
-                <span style="color: #2e1065;">IAC</span> <span style="color: var(--accent-core);">Covenant</span>
-            </div>
-        </div>
-        <ul class="nav nav-admin flex-column">
-            <li class="nav-item"><a href="dashboard" class="nav-link"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
-            <li class="nav-item"><a href="analytics" class="nav-link active"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
-            <li class="nav-item"><a href="events" class="nav-link"><i class="fa-solid fa-calendar-alt"></i> Events</a></li>
-            <li class="nav-item"><a href="attendance" class="nav-link"><i class="fa-solid fa-user-check"></i> Attendance</a></li>
-            <li class="nav-item"><a href="submissions" class="nav-link"><i class="fa-solid fa-file-signature"></i> Submissions</a></li>
-            <li class="nav-item"><a href="activity_logs" class="nav-link"><i class="fa-solid fa-list-ul"></i> Activity Logs</a></li>
-            <li class="nav-item"><a href="edit_profile" class="nav-link"><i class="fa-solid fa-user-cog"></i> Profile</a></li>
-            
-            <li class="nav-item mt-4">
-                <a href="../logout" class="nav-link text-danger border border-danger border-opacity-25" style="background: rgba(239, 68, 68, 0.05);"><i class="fa-solid fa-right-from-bracket"></i> Secure Logout</a>
-            </li>
-        </ul>
-    </div>
+    <?php $active_page = 'analytics'; include 'sidebar.php'; ?>
 
     <div class="admin-content">
         <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
