@@ -188,7 +188,7 @@ if (isset($_GET['delete'])) {
                                         </div>
                                     </td>
                                     <td class="text-end">
-                                        <a href="../assets/signatures/<?php echo $sub['signature_file']; ?>" target="_blank"
+                                        <a href="../view_signature?file=<?php echo urlencode($sub['signature_file']); ?>" target="_blank"
                                             class="btn-action" title="View Signature"><i class="fa-solid fa-signature"></i></a>
                                         <a href="../view_certificate?file=<?php echo urlencode($sub['pdf_file']); ?>"
                                             target="_blank" class="btn-action" title="View PDF"><i

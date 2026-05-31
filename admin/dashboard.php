@@ -196,7 +196,7 @@ $recentSubmissions = $stmtRecent->fetchAll();
                                         </div>
                                     </td>
                                     <td class="text-end">
-                                        <a href="../assets/signatures/<?php echo $sub['signature_file']; ?>" target="_blank"
+                                        <a href="../view_signature?file=<?php echo urlencode($sub['signature_file']); ?>" target="_blank"
                                             class="btn-action-round" title="Signature"><i class="fa-solid fa-image"></i></a>
                                         <a href="../view_certificate?file=<?php echo urlencode($sub['pdf_file']); ?>"
                                             target="_blank" class="btn-action-round" title="PDF"><i
@@ -358,7 +358,7 @@ $recentSubmissions = $stmtRecent->fetchAll();
                                                 <div class="text-muted small">${sub.time_friendly}</div>
                                             </td>
                                             <td class="text-end">
-                                                <a href="../assets/signatures/${sub.signature_file}" target="_blank" class="btn-action-round"><i class="fa-solid fa-image"></i></a>
+                                                <a href="../view_signature?file=${encodeURIComponent(sub.signature_file)}" target="_blank" class="btn-action-round"><i class="fa-solid fa-image"></i></a>
                                                 <a href="../view_certificate?file=${sub.pdf_file}" target="_blank" class="btn-action-round"><i class="fa-solid fa-file-pdf"></i></a>
                                            </td>
                                         </tr>
