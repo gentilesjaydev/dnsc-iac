@@ -4,8 +4,14 @@
  * Uses Brevo REST API v3 to send transactional emails.
  */
 
-// Replace this with your actual Brevo API Key from: https://app.brevo.com/settings/keys/api
-define('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE');
+// Load environment variables
+$envPath = __DIR__ . '/../.env';
+if (file_exists($envPath)) {
+    $env = parse_ini_file($envPath);
+    define('BREVO_API_KEY', $env['BREVO_API_KEY'] ?? '');
+} else {
+    define('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE');
+}
 
 function sendCovenantEmail($recipient_email, $recipient_name, $pdf_path)
 {
